@@ -3,7 +3,7 @@ from pathlib import Path
 import cv2
 
 DATASET_DIR = "../uncertain"
-VALID_GRADES = ["A", "B", "C", "D", "E"]
+VALID_GRADES = ["A", "B", "C"]
 
 def iter_images(root):
     root = Path(root)
@@ -29,7 +29,7 @@ def iter_images(root):
                 yield fruit, grade, p
 
 def main():
-    print("Relabelling tool: press A/B/C/D/E to change grade, N to skip, Q to quit.")
+    print("Relabelling tool: press A/B/C to change grade, N to skip, Q to quit.")
 
     for fruit, grade, path in iter_images(DATASET_DIR):
         img = cv2.imread(str(path))
@@ -52,7 +52,6 @@ def main():
         if new_grade not in VALID_GRADES:
             continue
 
-        # Save corrected image into dataset_refined
         refined_dir = Path("../dataset_refined") / new_grade
         refined_dir.mkdir(parents=True, exist_ok=True)
 

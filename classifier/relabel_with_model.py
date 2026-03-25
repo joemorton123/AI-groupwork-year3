@@ -9,13 +9,13 @@ import shutil
 DATASET_DIR = "../dataset"
 OUTPUT_DIR = "../dataset_refined"
 UNCERTAIN_DIR = "../uncertain"
-MODEL_PATH = "model_AtoE.pth"
+MODEL_PATH = "model_AtoC.pth"
 
-GRADES = ["A", "B", "C", "D", "E"]
+GRADES = ["A", "B", "C"]
 
 def load_model():
     model = models.efficientnet_b0(weights=None)
-    model.classifier[1] = nn.Linear(model.classifier[1].in_features, 5)
+    model.classifier[1] = nn.Linear(model.classifier[1].in_features, 3)
     model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
     model.eval()
     return model
@@ -56,11 +56,12 @@ def main():
 
             grade, conf = predict(model, img)
 
+            # Low confidence → uncertain
             if conf < 0.55:
                 shutil.copy(img, Path(UNCERTAIN_DIR) / img.name)
                 continue
 
-            # NEW: grade-only folder
+            # Confident → refined dataset
             dest_folder = Path(OUTPUT_DIR) / grade
             dest_folder.mkdir(parents=True, exist_ok=True)
             shutil.copy(img, dest_folder / img.name)

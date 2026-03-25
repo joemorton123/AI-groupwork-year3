@@ -17,14 +17,14 @@ SPLIT = {
     "test": 0.15,
 }
 
-GRADES = ["A", "B", "C", "D", "E"]
+GRADES = ["A", "B", "C"]
 
 def collect_images_by_grade(root: Path):
     """
-    Returns a dict: { 'A': [img_paths...], 'B': [...], ... }
+    Returns a dict: { 'A': [img_paths...], 'B': [...], 'C': [...] }
     Works for:
       - Fruit__Grade folders (e.g. Apple__A)
-      - Grade-only folders (A, B, C, D, E)
+      - Grade-only folders (A, B, C)
     """
     grade_to_images = {g: [] for g in GRADES}
 

@@ -7,12 +7,12 @@ from torchvision import datasets, transforms, models
 
 DATASET_DIR = "../dataset_split/train"
 VAL_DIR = "../dataset_split/val"
-SAVE_PATH = "model_AtoE.pth"
+SAVE_PATH = "model_AtoC.pth"
 
 BATCH_SIZE = 32
 EPOCHS = 5
 LR = 1e-4
-NUM_CLASSES = 5  # A–E
+NUM_CLASSES = 3  # A/B/C
 
 def get_loaders():
     transform = transforms.Compose([

@@ -6,12 +6,12 @@ from sklearn.metrics import confusion_matrix, classification_report
 import numpy as np
 
 TEST_DIR = "../dataset_split/test"
-MODEL_PATH = "model_AtoE.pth"
-GRADES = ["A", "B", "C", "D", "E"]
+MODEL_PATH = "model_AtoC.pth"
+GRADES = ["A", "B", "C"]
 
 def load_model():
     model = models.efficientnet_b0(weights=None)
-    model.classifier[1] = nn.Linear(model.classifier[1].in_features, 5)
+    model.classifier[1] = nn.Linear(model.classifier[1].in_features, 3)
     model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
     model.eval()
     return model
