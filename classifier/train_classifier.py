@@ -7,7 +7,10 @@ from torchvision import datasets, transforms, models
 
 DATASET_DIR = "../dataset_split/train"
 VAL_DIR = "../dataset_split/val"
-SAVE_PATH = "model_AtoC.pth"
+# First pass:
+SAVE_PATH = "model_first_pass.pth"
+# Second pass:
+# SAVE_PATH = "model_AtoC.pth"
 
 BATCH_SIZE = 32
 EPOCHS = 5

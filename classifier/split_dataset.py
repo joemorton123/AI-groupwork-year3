@@ -5,9 +5,9 @@ from sklearn.model_selection import train_test_split
 
 # CHANGE THIS LINE ONLY when switching between first and second pass:
 # First pass:
-# DATASET_DIR = "../dataset"
+DATASET_DIR = "../dataset"
 # Second pass:
-DATASET_DIR = "../dataset_refined"
+# DATASET_DIR = "../dataset_refined"
 
 OUTPUT_DIR = "../dataset_split"
 
