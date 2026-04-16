@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from PIL import Image
 from pathlib import Path
+import textwrap
 
 # -----------------------------
 # Paths
@@ -28,7 +29,11 @@ def make_gradcam_grid():
         if "_" not in name:
             continue
 
-        fruit, state = name.split("_")
+        parts = name.split("_")
+        if len(parts) != 2:
+            continue
+        fruit, state = parts
+
         fruit = fruit.capitalize()
         state = state.lower()
 
@@ -230,7 +235,7 @@ def make_method_overview_grid(method_name):
     # Determine grid layout (2 rows × 3 columns for 5 images)
     rows, cols = 2, 3
     fig, axes = plt.subplots(rows, cols, figsize=(12, 8))
-    plt.subplots_adjust(top=0.92)
+    plt.subplots_adjust(top=0.92, hspace=0.4)
 
     # Flatten axes for easy indexing
     axes = axes.flatten()
@@ -238,7 +243,8 @@ def make_method_overview_grid(method_name):
     for i, ax in enumerate(axes):
         if i < len(pil_images):
             ax.imshow(pil_images[i])
-            ax.set_title(images[i].stem, fontsize=10)
+            wrapped = "\n".join(textwrap.wrap(images[i].stem, width=35))
+            ax.set_title(wrapped, fontsize=9)
         ax.axis("off")
 
     # Save combined figure
@@ -252,7 +258,6 @@ def make_method_overview_grid(method_name):
 # Main function to create all grids
 # -----------------------------
 def main():
-    # Condense image folders into 1 image
     print("[XAI] Creating Grad-CAM grid of one healthy + one rotten per fruit...")
     make_gradcam_grid()
 
