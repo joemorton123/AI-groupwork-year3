@@ -2,8 +2,9 @@ import torch
 import torch.nn.functional as F
 from torchvision import models, transforms
 from captum.attr import IntegratedGradients
+from captum.attr import GradientShap
+import torch.nn.functional as F
 from lime import lime_image
-import shap
 import numpy as np
 from PIL import Image
 from pathlib import Path
@@ -12,6 +13,7 @@ import cv2
 import shutil
 import random
 import csv
+from skimage import segmentation
 
 # -----------------------------
 # Paths
@@ -242,51 +244,69 @@ def integrated_gradients(img_tensor, img_pil, save_path):
 # -----------------------------
 # SHAP
 # -----------------------------
+
 def shap_explain(img_tensor, img_pil, save_path):
-    # Background for GradientExplainer
-    background = torch.zeros_like(img_tensor)
+    model.eval()
+
+    # Build realistic background batch (10 random training images)
+    train_images = list(Path("../dataset_split/train").rglob("*.jpg"))
+    random.shuffle(train_images)
+    background_imgs = []
+
+    for p in train_images[:10]:
+        img, t = load_image(p)
+        if t is not None:
+            background_imgs.append(t.squeeze(0))
+
+    background = torch.stack(background_imgs).to(img_tensor.device)
 
     # Predict class
     logits = model(img_tensor)
     pred_class = logits.argmax().item()
 
-    # Wrap model so SHAP always returns all classes
-    class ShapModelWrapper(torch.nn.Module):
-        def __init__(self, model):
-            super().__init__()
-            self.model = model
-        def forward(self, x):
-            return self.model(x)
+    # GradientSHAP explainer
+    explainer = GradientShap(model)
 
-    shap_model = ShapModelWrapper(model)
+    attributions = explainer.attribute(
+        img_tensor,
+        baselines=background,
+        target=pred_class,
+        n_samples=50,
+        stdevs=0.1
+    )
 
-    # SHAP GradientExplainer
-    e = shap.GradientExplainer(shap_model, background)
+    # Convert to numpy
+    attr = attributions.squeeze().cpu().detach().numpy() # (3, 224, 224)
+    attr_gray = np.mean(attr, axis=0) # (224, 224)
 
-    # Compute SHAP values for all classes
-    shap_all = e.shap_values(img_tensor)
+    # Take absolute value to emphasise magnitude
+    attr_gray = np.abs(attr_gray)
 
-    # Safety check: if SHAP only returned 1 class, fall back to that
-    if len(shap_all) == 1:
-        shap_values = shap_all[0]
-    else:
-        shap_values = shap_all[pred_class]
+    # Contrast stretching
+    p1, p99 = np.percentile(attr_gray, (1, 99))
+    attr_gray = np.clip((attr_gray - p1) / (p99 - p1 + 1e-8), 0, 1)
 
-    # Remove batch dimension → (3, 224, 224)
-    shap_values = shap_values[0]
+    # Smooth the map
+    attr_gray = cv2.GaussianBlur(attr_gray, (11, 11), sigmaX=5)
 
-    # Convert to channel-last → (224, 224, 3)
-    shap_values = np.transpose(shap_values, (1, 2, 0))
+    # Convert to heatmap
+    attr_uint8 = np.uint8(attr_gray * 255)
+    heatmap = cv2.applyColorMap(attr_uint8, cv2.COLORMAP_JET)
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB) / 255.0
 
-    # Convert image to channel-last
-    img_np = np.array(img_pil.resize((224, 224)))
+    # Overlay
+    img_np = np.array(img_pil.resize((224, 224))) / 255.0
+    overlay = 0.6 * img_np + 0.4 * heatmap
+    overlay = np.clip(overlay, 0, 1)
 
-    # SHAP expects a list of arrays
-    shap.image_plot([shap_values], img_np, show=False)
-
+    plt.figure(figsize=(4,4))
+    plt.imshow(overlay)
+    plt.axis("off")
+    plt.tight_layout()
     plt.savefig(save_path, bbox_inches="tight")
-    print(f"[SHAP] Saved → {save_path}")
     plt.close()
+
+    print(f"[SHAP] Saved → {save_path}")
 
 # -----------------------------
 # LIME
@@ -301,24 +321,48 @@ def lime_explain(img_pil, save_path):
         return probs.detach().numpy()
 
     explanation = explainer.explain_instance(
-        np.array(img_pil),
+        np.array(img_pil.resize((224, 224))),
         predict_fn,
         top_labels=1,
         hide_color=0,
-        num_samples=500
+        num_samples=1000,
+        segmentation_fn=lambda x: segmentation.slic(
+            x, n_segments=50, compactness=10, sigma=1
+        )
     )
 
+    # Get both positive and negative contributions
     temp, mask = explanation.get_image_and_mask(
         explanation.top_labels[0],
-        positive_only=True,
-        hide_rest=False
+        positive_only=False,
+        hide_rest=False,
+        min_weight=0.01 # filter out tiny contributions
     )
 
-    plt.imshow(temp)
+    # Convert mask to heatmap
+    mask = mask.astype(float)
+    mask = cv2.GaussianBlur(mask, (11, 11), sigmaX=5)
+
+    heatmap = cv2.applyColorMap(
+        np.uint8((mask - mask.min()) / (mask.max() - mask.min() + 1e-8) * 255),
+        cv2.COLORMAP_JET
+    )
+    heatmap = cv2.cvtColor(heatmap, cv2.COLOR_BGR2RGB)
+
+    # Overlay on original image
+    img_np = np.array(img_pil.resize((224, 224)))
+    heatmap = cv2.resize(heatmap, (224, 224))
+    overlay = 0.6 * img_np + 0.4 * heatmap
+    overlay = np.clip(overlay / 255.0, 0, 1)
+
+    plt.figure(figsize=(4,4))
+    plt.imshow(overlay)
     plt.axis("off")
+    plt.tight_layout()
     plt.savefig(save_path, bbox_inches="tight")
-    print(f"[LIME] Saved → {save_path}")
     plt.close()
+
+    print(f"[LIME] Saved → {save_path}")
 
 # -----------------------------
 # Robustness XAI
@@ -437,12 +481,16 @@ def main():
         analysis_counter+=1
         print("[XAI] Running Grad-CAM...")
         gradcam(tensor, img, XAI_DIR / "gradcam" / f"{Path(img_path).stem}_gradcam.jpg")
+        
         print("[XAI] Running Integrated Gradients...")
         integrated_gradients(tensor, img, XAI_DIR / "integrated_gradients" / f"{Path(img_path).stem}_ig.jpg")
+        
         print("[XAI] Running SHAP...")
         shap_explain(tensor, img, XAI_DIR / "shap" / f"{Path(img_path).stem}_shap.jpg")
+        
         print("[XAI] Running LIME...")
         lime_explain(img, XAI_DIR / "lime" / f"{Path(img_path).stem}_lime.jpg")
+        
         print("[XAI] Running Robustness tests...")
         robustness_explain(img_path)
 
