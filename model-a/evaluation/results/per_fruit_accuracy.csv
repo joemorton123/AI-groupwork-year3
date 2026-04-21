@@ -1,0 +1,15 @@
+fruit,accuracy,correct,total
+Apple,0.986,793,804
+Banana,0.983,697,709
+Bellpepper,0.983,175,178
+Carrot,0.966,169,175
+Cucumber,0.971,168,173
+Grape,1.000,66,66
+Guava,1.000,64,64
+Jujube,0.984,61,62
+Mango,0.974,302,310
+Orange,0.997,655,657
+Pomegranate,0.883,53,60
+Potato,0.942,178,189
+Strawberry,0.996,446,448
+Tomato,0.939,170,181

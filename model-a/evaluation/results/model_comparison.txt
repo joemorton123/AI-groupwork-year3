@@ -1,0 +1,2 @@
+First-pass accuracy: 0.9917
+Final accuracy:      0.9806

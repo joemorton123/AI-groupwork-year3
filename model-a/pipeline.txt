@@ -1,0 +1,20 @@
+0. Delete dataset_split/, dataset_refined/, uncertain/
+
+1. Run cluster_healthy_to_ABC.py
+2. Run cluster_rotten_to_C.py
+3. Delete all Fruit__Healthy and Fruit__Rotten folders
+
+4. Delete dataset_split/
+5. Run split_dataset.py
+
+6. Run train_classifier.py (first pass)
+
+7. Delete dataset_refined/ and uncertain/
+8. Run relabel_with_model.py
+9. Run relabel_A_to_C.py to fix uncertain images
+
+10. Delete dataset_split/
+11. Run split_dataset.py again (now using refined labels)
+
+12. Run train_classifier.py (final model)
+13. Run evaluate_classifier.py
