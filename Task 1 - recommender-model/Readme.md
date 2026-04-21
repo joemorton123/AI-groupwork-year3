@@ -97,7 +97,7 @@ TASK_1/
 ### Installation
 
 ```bash
-pip install pandas numpy scipy scikit-learn implicit matplotlib seaborn
+pip install -r requirements.txt
 ```
 
 ## Usage
