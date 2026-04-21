@@ -1,4 +1,4 @@
-# Fruit and Vegetable Quality Classification System
+# Task 2: Fruit and Vegetable Quality Classification System
 
 ## Project Overview
 
