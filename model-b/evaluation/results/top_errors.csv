@@ -1,0 +1,21 @@
+filename,predicted,true,confidence
+freshCarrot (506).jpg,C,B,1.00
+freshCarrot (398).jpg,C,B,1.00
+Banana__Healthy_augmented_133.jpg,C,B,1.00
+Banana__Healthy_augmented_222.jpg,A,C,1.00
+FreshPomegranate (70).jpg,B,A,1.00
+FreshPomegranate (197).jpg,B,C,1.00
+FreshPomegranate (175).jpg,B,C,1.00
+freshBanana (137).png,B,C,1.00
+freshTomato (296).png,B,A,1.00
+rottenTomato (442).jpg,C,B,1.00
+freshCucumber (224).jpg,C,B,1.00
+freshApple (831).png,B,C,1.00
+rotated_by_45_Screen Shot 2018-06-13 at 12.02.33 AM.png,A,C,1.00
+FreshPomegranate (112).jpg,B,C,1.00
+freshTomato (157).jpg,B,C,1.00
+freshApple (560).png,B,A,0.99
+freshMango (154).png,C,A,0.99
+freshMango (58).png,B,A,0.99
+freshTomato (286).png,B,A,0.99
+freshTomato (259).png,B,A,0.99
