@@ -1,0 +1,11 @@
+artifacts/
+*.npy
+*.npz
+*.pkl
+*.csv
+*.zip
+*.exe
+__pycache__/
+*.pyc
+venv/
+.env
