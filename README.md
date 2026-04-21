@@ -168,12 +168,12 @@ The system uses a convolutional neural network (CNN) for image classification. P
 
 ## Key Features
 
-**Automated Quality Grading** - Three-tier classification system (A, B, C)
-**Iterative Refinement** - Self-labeling to improve dataset quality
-**Comprehensive Evaluation** - Per-fruit accuracy and error analysis
-**Model Explainability** - Multiple XAI techniques for interpretability
-**Error Analysis** - Identification and visualization of problem cases
-**Robustness Testing** - Validation of model reliability
+- **Automated Quality Grading** - Three-tier classification system (A, B, C)
+- **Iterative Refinement** - Self-labeling to improve dataset quality
+- **Comprehensive Evaluation** - Per-fruit accuracy and error analysis
+- **Model Explainability** - Multiple XAI techniques for interpretability
+- **Error Analysis** - Identification and visualization of problem cases
+- **Robustness Testing** - Validation of model reliability
 
 ## Notes
 
