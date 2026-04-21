@@ -1,12 +1,70 @@
-import matplotlib.pyplot as plt
-from PIL import Image
+"""
+Create composite visualisation grids for explainability outputs.
+
+Purpose
+-------
+This script combines previously generated explainability images into larger summary
+figures for easier inspection and reporting. It supports four types of composite
+output:
+
+1. Per-fruit Grad-CAM comparison grid
+   - one row per fruit
+   - two columns: healthy and rotten
+
+2. Top-error explanation grids
+   - one row per misclassified sample
+   - four columns: Grad-CAM, Integrated Gradients, SHAP, and LIME
+
+3. Robustness comparison grids
+   - one row per source image
+   - four columns: original, rotated, darker, and brighter
+
+4. Method overview grids
+   - one combined figure per XAI method
+   - shows all available images for that method in a fixed grid layout
+
+Expected directory structure
+----------------------------
+xai/
+    gradcam/
+    integrated_gradients/
+    shap/
+    lime/
+    robustness/
+    top_errors/
+    gradcam_per_fruit/
+
+Generated outputs
+-----------------
+- xai/gradcam_per_fruit/gradcam_per_fruit_grid.jpg
+- xai/top_errors/<error_folder>/<error_folder>_grid.jpg
+- xai/robustness/<base>_robustness_grid.jpg
+- xai/<method>/<method>_all.jpg
+
+Assumptions
+-----------
+- The required input images have already been generated and saved to the expected
+  folders.
+- Filenames follow the naming patterns expected by each grid-building function.
+- Images are stored in `.jpg` format where required by the current logic.
+
+Side effects
+------------
+- Creates the XAI output directory structure if it does not already exist.
+- Writes combined grid images to disk.
+"""
+
 from pathlib import Path
 import textwrap
 
-# -----------------------------
-# Paths
-# -----------------------------
+import matplotlib.pyplot as plt
+from PIL import Image
+
+
+# Root directory for explainability outputs.
 XAI_DIR = Path("xai")
+
+# Ensure the expected output subdirectories exist.
 (XAI_DIR / "gradcam").mkdir(parents=True, exist_ok=True)
 (XAI_DIR / "integrated_gradients").mkdir(exist_ok=True)
 (XAI_DIR / "shap").mkdir(exist_ok=True)
@@ -14,14 +72,38 @@ XAI_DIR = Path("xai")
 (XAI_DIR / "robustness").mkdir(exist_ok=True)
 (XAI_DIR / "top_errors").mkdir(exist_ok=True)
 
-# -----------------------------
-# Gradcam grid: 1 row per fruit, 2 columns (healthy and rotten)
-# -----------------------------
+
 def make_gradcam_grid():
+    """
+    Create a Grad-CAM comparison grid with one row per fruit.
+
+    The function scans `xai/gradcam_per_fruit/` for images named in the format:
+
+        <fruit>_healthy.jpg
+        <fruit>_rotten.jpg
+
+    Each fruit is included only if both healthy and rotten images are present.
+    The final figure contains:
+    - left column: healthy image
+    - right column: rotten image
+
+    Returns
+    -------
+    None
+
+    Output
+    ------
+    xai/gradcam_per_fruit/gradcam_per_fruit_grid.jpg
+
+    Notes
+    -----
+    - Fruits with incomplete healthy/rotten pairs are excluded.
+    - Fruit names are capitalised for display.
+    """
     folder = XAI_DIR / "gradcam_per_fruit"
     out_path = folder / "gradcam_per_fruit_grid.jpg"
 
-    # Collect images
+    # Map each fruit to its healthy and rotten image paths.
     fruit_dict = {}
 
     for img_path in folder.glob("*.jpg"):
@@ -32,8 +114,8 @@ def make_gradcam_grid():
         parts = name.split("_")
         if len(parts) != 2:
             continue
-        fruit, state = parts
 
+        fruit, state = parts
         fruit = fruit.capitalize()
         state = state.lower()
 
@@ -43,7 +125,7 @@ def make_gradcam_grid():
         if state in fruit_dict[fruit]:
             fruit_dict[fruit][state] = img_path
 
-    # Filter fruits that have both images
+    # Keep only fruits for which both healthy and rotten images are available.
     fruits = [f for f in fruit_dict if fruit_dict[f]["healthy"] and fruit_dict[f]["rotten"]]
     fruits.sort()
 
@@ -51,12 +133,12 @@ def make_gradcam_grid():
         print("[GRID] No complete fruit pairs found.")
         return
 
-    # Create grid: 1 row per fruit, 2 columns (healthy | rotten)
     rows = len(fruits)
     fig, axes = plt.subplots(rows, 2, figsize=(8, 4 * rows))
 
+    # When only one row exists, convert axes into a list-like structure.
     if rows == 1:
-        axes = [axes]  # ensure iterable
+        axes = [axes]
 
     for i, fruit in enumerate(fruits):
         healthy_path = fruit_dict[fruit]["healthy"]
@@ -65,12 +147,10 @@ def make_gradcam_grid():
         healthy_img = Image.open(healthy_path)
         rotten_img = Image.open(rotten_path)
 
-        # Left column: healthy
         axes[i][0].imshow(healthy_img)
         axes[i][0].set_title(f"{fruit} — Healthy")
         axes[i][0].axis("off")
 
-        # Right column: rotten
         axes[i][1].imshow(rotten_img)
         axes[i][1].set_title(f"{fruit} — Rotten")
         axes[i][1].axis("off")
@@ -81,13 +161,37 @@ def make_gradcam_grid():
 
     print(f"[GRID] Saved combined grid → {out_path}")
 
-# -----------------------------
-# Top error grids: 1 image per error, 4 columns (Grad-CAM, IG, SHAP, LIME)
-# -----------------------------
+
 def make_top_errors_grids():
+    """
+    Create one 1×4 explanation grid for each top-error folder.
+
+    The function scans subdirectories inside `xai/top_errors/`. Each error folder is
+    expected to contain the following files:
+
+        gradcam.jpg
+        ig.jpg
+        shap.jpg
+        lime.jpg
+
+    A grid is generated only when all four images are present.
+
+    Returns
+    -------
+    None
+
+    Output
+    ------
+    xai/top_errors/<error_folder>/<error_folder>_grid.jpg
+
+    Notes
+    -----
+    - Incomplete error folders are skipped.
+    - Each grid contains four columns:
+      Grad-CAM, Integrated Gradients, SHAP, and LIME.
+    """
     folder = XAI_DIR / "top_errors"
 
-    # Find all error folders
     error_folders = [f for f in folder.iterdir() if f.is_dir()]
     error_folders.sort()
 
@@ -96,24 +200,20 @@ def make_top_errors_grids():
         return
 
     for err_dir in error_folders:
-        # Expected files
         gradcam_path = err_dir / "gradcam.jpg"
         ig_path = err_dir / "ig.jpg"
         shap_path = err_dir / "shap.jpg"
         lime_path = err_dir / "lime.jpg"
 
-        # Skip if any missing
         if not (gradcam_path.exists() and ig_path.exists() and shap_path.exists() and lime_path.exists()):
             print(f"[GRID] Skipping {err_dir.name} — missing one or more XAI images.")
             continue
 
-        # Load images
         gradcam_img = Image.open(gradcam_path)
         ig_img = Image.open(ig_path)
         shap_img = Image.open(shap_path)
         lime_img = Image.open(lime_path)
 
-        # Create 1×4 grid
         fig, axes = plt.subplots(1, 4, figsize=(16, 4))
 
         axes[0].imshow(gradcam_img)
@@ -134,26 +234,50 @@ def make_top_errors_grids():
 
         plt.tight_layout(rect=[0, 0, 1, 0.95])
 
-        # Save grid
         out_path = err_dir / f"{err_dir.name}_grid.jpg"
         plt.savefig(out_path, dpi=200, bbox_inches="tight")
         plt.close()
 
         print(f"[GRID] Saved → {out_path}")
 
-# -----------------------------
-# Robustness grids: 1 image per fruit, 4 columns (original, rotated, darker, brighter)
-# -----------------------------
+
 def make_robustness_grids():
+    """
+    Create robustness comparison grids from Grad-CAM images.
+
+    The function scans `xai/robustness/` for files named using the patterns:
+
+        <base>_original_gradcam.jpg
+        <base>_rotated_gradcam.jpg
+        <base>_darker_gradcam.jpg
+        <base>_brighter_gradcam.jpg
+
+    A grid is created only when all four variants exist for the same base name.
+
+    Returns
+    -------
+    None
+
+    Output
+    ------
+    xai/robustness/<base>_robustness_grid.jpg
+
+    Notes
+    -----
+    Each grid contains four columns:
+    - Original
+    - Rotated
+    - Darker
+    - Brighter
+    """
     folder = XAI_DIR / "robustness"
 
-    # Find all robustness images
     images = list(folder.glob("*_gradcam.jpg"))
     if not images:
         print("[GRID] No robustness images found.")
         return
 
-    # Group by base name
+    # Group the four robustness variants under a shared base name.
     groups = {}
 
     for img_path in images:
@@ -161,7 +285,6 @@ def make_robustness_grids():
         if "_gradcam" not in name:
             continue
 
-        # Extract variant (original, rotated, darker, brighter)
         if "_original_gradcam" in name:
             variant = "original"
             base = name.replace("_original_gradcam", "")
@@ -178,28 +301,28 @@ def make_robustness_grids():
             continue
 
         if base not in groups:
-            groups[base] = {"original": None, "rotated": None, "darker": None, "brighter": None}
+            groups[base] = {
+                "original": None,
+                "rotated": None,
+                "darker": None,
+                "brighter": None,
+            }
 
         groups[base][variant] = img_path
 
-    # Create a grid for each robustness group
     for base, variants in groups.items():
-        # Skip incomplete sets
         if not all(variants.values()):
             print(f"[GRID] Skipping {base} — missing one or more robustness images.")
             continue
 
-        # Load images
         imgs = [
             Image.open(variants["original"]),
             Image.open(variants["rotated"]),
             Image.open(variants["darker"]),
             Image.open(variants["brighter"]),
         ]
-
         titles = ["Original", "Rotated", "Darker", "Brighter"]
 
-        # Create 1×4 grid
         fig, axes = plt.subplots(1, 4, figsize=(16, 4))
         plt.subplots_adjust(top=0.88)
 
@@ -208,7 +331,6 @@ def make_robustness_grids():
             axes[i].set_title(titles[i])
             axes[i].axis("off")
 
-        # Save output
         out_path = folder / f"{base}_robustness_grid.jpg"
         plt.tight_layout(rect=[0, 0, 1, 0.95])
         plt.savefig(out_path, dpi=200, bbox_inches="tight")
@@ -216,28 +338,53 @@ def make_robustness_grids():
 
         print(f"[GRID] Saved → {out_path}")
 
-# -----------------------------
-# Method overview grid: 1 image per method, show all fruits in 1 grid
-# -----------------------------
+
 def make_method_overview_grid(method_name):
+    """
+    Create a combined overview grid for one explainability method.
+
+    The function scans `xai/<method_name>/` for `.jpg` files and combines them into a
+    fixed 2×3 grid. The filename stem of each image is wrapped and displayed as the
+    subplot title.
+
+    Parameters
+    ----------
+    method_name : str
+        Name of the XAI method subdirectory. Expected values include:
+        - "gradcam"
+        - "integrated_gradients"
+        - "shap"
+        - "lime"
+
+    Returns
+    -------
+    None
+
+    Output
+    ------
+    xai/<method_name>/<method_name>_all.jpg
+
+    Notes
+    -----
+    - The current layout is fixed at 2 rows × 3 columns.
+    - Empty grid cells remain blank if fewer than six images are available.
+    - Additional images beyond six will not be shown because only six subplot
+      positions are created.
+    """
     folder = XAI_DIR / method_name
     out_path = folder / f"{method_name}_all.jpg"
 
-    # Collect all images
     images = sorted(folder.glob("*.jpg"))
     if not images:
         print(f"[GRID] No images found in {folder}")
         return
 
-    # Load images
     pil_images = [Image.open(p) for p in images]
 
-    # Determine grid layout (2 rows × 3 columns for 5 images)
     rows, cols = 2, 3
     fig, axes = plt.subplots(rows, cols, figsize=(12, 8))
     plt.subplots_adjust(top=0.92, hspace=0.4)
 
-    # Flatten axes for easy indexing
     axes = axes.flatten()
 
     for i, ax in enumerate(axes):
@@ -247,17 +394,28 @@ def make_method_overview_grid(method_name):
             ax.set_title(wrapped, fontsize=9)
         ax.axis("off")
 
-    # Save combined figure
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig(out_path, dpi=200, bbox_inches="tight")
     plt.close()
 
     print(f"[GRID] Saved → {out_path}")
 
-# -----------------------------
-# Main function to create all grids
-# -----------------------------
+
 def main():
+    """
+    Run all XAI grid-generation steps.
+
+    Workflow
+    --------
+    1. Create the per-fruit Grad-CAM comparison grid.
+    2. Create per-error explanation grids for top misclassifications.
+    3. Create robustness comparison grids.
+    4. Create overview grids for each explanation method.
+
+    Returns
+    -------
+    None
+    """
     print("[XAI] Creating Grad-CAM grid of one healthy + one rotten per fruit...")
     make_gradcam_grid()
 
@@ -270,6 +428,7 @@ def main():
     print("[XAI] Creating method overview grids...")
     for method in ["gradcam", "integrated_gradients", "shap", "lime"]:
         make_method_overview_grid(method)
+
 
 if __name__ == "__main__":
     main()
