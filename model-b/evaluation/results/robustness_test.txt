@@ -1,4 +1,0 @@
-Original: A (1.00)
-Rotated 20 degrees: A (1.00)
-Darker: A (0.66)
-Brighter: A (1.00)

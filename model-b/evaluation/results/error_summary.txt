@@ -1,4 +1,0 @@
-Total misclassifications: 79
-Misclassifications with 100% confidence: 0
-Misclassifications with >=99% confidence: 20
-Top errors saved: 20
