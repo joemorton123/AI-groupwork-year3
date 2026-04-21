@@ -1,0 +1,7 @@
+*.csv
+/output/
+/log/
+
+# Python cache
+__pycache__/
+*.pyc
